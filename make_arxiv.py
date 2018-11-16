@@ -37,8 +37,6 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
     next_line = lambda: proc.stdout.readline().decode()
 
     def read_until(check):
-        if not hasattr(check, '__call__'):
-            check = check.__eq__
         while True:
             line = next_line()
             if line == '':
@@ -53,7 +51,7 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
 
     pkg_re = re.compile('/' + '|'.join(re.escape(p) for p in packages) + '/')
 
-    for line in read_until('#===End dependents for {}:\n'.format(base_name)):
+    for line in read_until('#===End dependents for {}:\n'.format(base_name).__eq__):
         dep = line.strip()
         if dep.endswith('\\'):
             dep = dep[:-1]
