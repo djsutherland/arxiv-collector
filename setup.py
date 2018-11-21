@@ -4,7 +4,7 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
-    name="arxiv_collector",
+    name="arxiv-collector",
     version='0.1.0',
     author="Dougal J. Sutherland",
     author_email="dougal@gmail.com",
