@@ -11,6 +11,9 @@ import sys
 import tarfile
 
 
+__version__ = '0.1.0'
+
+
 def consume(iterator):
     collections.deque(iterator, maxlen=0)
 
@@ -23,6 +26,7 @@ def target(fname):
 
 strip_comment = partial(re.compile(r'(^|[^\\])%.*').sub, r'\1%')
 
+
 def collect(out_tar, base_name='main', packages=('biblatex',),
             strip_comments=True):
     # Use latexmk to:
@@ -34,7 +38,9 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
     proc = subprocess.Popen(
         ['latexmk', '-silent', '-pdf', '-deps', base_name],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1)
-    next_line = lambda: proc.stdout.readline().decode()
+
+    def next_line():
+        return proc.stdout.readline().decode()
 
     def read_until(check):
         while True:
@@ -51,7 +57,8 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
 
     pkg_re = re.compile('/' + '|'.join(re.escape(p) for p in packages) + '/')
 
-    for line in read_until('#===End dependents for {}:\n'.format(base_name).__eq__):
+    end_line = '#===End dependents for {}:\n'.format(base_name)
+    for line in read_until(end_line.__eq__):
         dep = line.strip()
         if dep.endswith('\\'):
             dep = dep[:-1]
@@ -106,6 +113,8 @@ def main():
                    help="Strip comments from all .tex files (by default).")
     g.add_argument('--no-strip-comments', action='store_false',
                    dest='strip_comments')
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s {}'.format(__version__))
     args = parser.parse_args()
 
     if not args.base_name:
