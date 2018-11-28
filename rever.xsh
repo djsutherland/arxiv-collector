@@ -8,7 +8,7 @@ $ACTIVITIES = [
     'push_tag',
     'pypi',
     'ghrelease',
-    # 'conda_forge',
+    'conda_forge',
 ]
 $VERSION_BUMP_PATTERNS = [  # These note where/how to find the version numbers
     ('arxiv_collector.py', '__version__\s*=.*', "__version__ = '$VERSION'"),
