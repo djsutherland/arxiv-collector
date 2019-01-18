@@ -19,8 +19,13 @@ def consume(iterator):
 
 
 def target(fname):
+    seen_names = {fname}
     while os.path.islink(fname):
-        fname = os.readlink(fname)
+        new = os.readlink(fname)
+        if new in seen_names:
+            raise ValueError("Link cycle detected for {}...".format(fname))
+        seen_names.add(new)
+        fname = new
     return fname
 
 
