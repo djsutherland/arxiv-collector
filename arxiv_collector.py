@@ -53,7 +53,9 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
             line = next_line()
             if line == '':
                 raise ValueError("Unexpected EOF")
-            elif check(line):
+            res = check(line)
+            assert res is not NotImplemented
+            if res:
                 return
             yield line
 
@@ -74,7 +76,7 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
 
     pkg_re = re.compile('/' + '|'.join(re.escape(p) for p in packages) + '/')
 
-    end_line = '#===End dependents for {}:\n'.format(base_name)
+    end_line = u'#===End dependents for {}:\n'.format(base_name)
     for line in read_until(end_line.__eq__):
         dep = line.strip()
         if dep.endswith('\\'):
