@@ -33,12 +33,13 @@ strip_comment = partial(re.compile(r'(^|[^\\])%.*').sub, r'\1%')
 
 
 def collect(out_tar, base_name='main', packages=('biblatex',),
-            strip_comments=True):
+            strip_comments=True, verbosity=1):
     # Use latexmk to:
     #  - make sure we have a good main.bbl file
     #  - figure out which files we actually use (to not include unused figures)
     #  - keep track of which files we use from certain packages
-    print("Building {}...".format(base_name))
+    if verbosity >= 1:
+        print("Building {}...".format(base_name))
 
     proc = subprocess.Popen(
         ['latexmk', '-silent', '-pdf', '-deps', base_name],
@@ -56,6 +57,17 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
                 return
             yield line
 
+    def add(path, arcname=None, **kwargs):
+        dest = target(path)
+        if arcname is None:
+            arcname = path
+
+        if not os.path.exists(dest):
+            raise OSError("{} doesn't exist!".format(path))
+        if verbosity >= 2:
+            print("Adding {}".format(arcname))
+        out_tar.add(dest, arcname=arcname, **kwargs)
+
     pat = '#===Dependents(, and related info,)? for {}:\n'.format(base_name)
     consume(read_until(re.compile(pat).match))
     assert next_line().strip() == '{}.pdf :\\'.format(base_name)
@@ -68,9 +80,12 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
         if dep.endswith('\\'):
             dep = dep[:-1]
 
+        if verbosity >= 3:
+            print("Processing", dep, "...")
+
         if dep.startswith('/'):
             if pkg_re.search(dep):
-                out_tar.add(target(dep), arcname=os.path.basename(dep))
+                add(dep, arcname=os.path.basename(dep))
         elif dep.endswith('.tex') and strip_comments:
             with io.open(dep) as f, io.BytesIO() as g:
                 info = tarfile.TarInfo(name=dep)
@@ -82,16 +97,14 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
         elif dep.endswith('.eps'):
             # arxiv doesn't like epstopdf in subdirectories
             base = dep[:-4]
-            pdf = base + '-eps-converted-to.pdf'
-            assert os.path.exists(pdf)
-            out_tar.add(target(pdf), arcname=base + '.pdf')
+            add(base + '-eps-converted-to.pdf', arcname=base + '.pdf')
         elif dep.endswith('-eps-converted-to.pdf'):
             # old versions of latexmk output both the converted and the not
             pass
         elif dep.endswith('.bib'):
             pass
         else:
-            out_tar.add(target(dep), arcname=dep)
+            add(dep)
 
     consume(iter(proc.stdout.read, b''))
     proc.wait()
@@ -108,16 +121,27 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
 def main():
     import argparse
     parser = argparse.ArgumentParser()
+
     parser.add_argument('base_name', nargs='?')
+    parser.add_argument('--dest', default='arxiv.tar.gz')
+
     parser.add_argument('--include-package', '-p',
                         action='append', dest='packages', default=['biblatex'])
     parser.add_argument('--skip-biblatex', action='store_true')
-    parser.add_argument('--dest', default='arxiv.tar.gz')
+
     g = parser.add_mutually_exclusive_group()
     g.add_argument('--strip-comments', action='store_true', default=True,
                    help="Strip comments from all .tex files (by default).")
     g.add_argument('--no-strip-comments', action='store_false',
                    dest='strip_comments')
+
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument('--verbose', '-v', action='store_const', const=2,
+                   dest='verbosity', default=1)
+    g.add_argument('--quiet', '-q', action='store_const', const=1,
+                   dest='verbosity')
+    g.add_argument('--debug', action='store_const', const=10, dest='verbosity')
+
     parser.add_argument('--version', action='version',
                         version='%(prog)s {}'.format(__version__))
     args = parser.parse_args()
@@ -145,7 +169,7 @@ def main():
 
     with tarfile.open(args.dest, mode='w:gz') as t:
         collect(t, base_name=args.base_name, packages=args.packages,
-                strip_comments=args.strip_comments)
+                strip_comments=args.strip_comments, verbosity=args.verbosity)
     print("Output in {}".format(args.dest))
 
 
