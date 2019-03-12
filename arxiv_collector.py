@@ -67,7 +67,8 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
         if not os.path.exists(dest):
             raise OSError("{} doesn't exist!".format(path))
         if verbosity >= 2:
-            print("Adding {}".format(arcname))
+            print("Adding {}".format(dest))
+            print("    as {}".format(arcname))
         out_tar.add(dest, arcname=arcname, **kwargs)
 
     pat = '#===Dependents(, and related info,)? for {}:\n'.format(base_name)
@@ -85,7 +86,7 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
         if verbosity >= 3:
             print("Processing", dep, "...")
 
-        if dep.startswith('/'):
+        if os.path.isabs(dep):
             if pkg_re.search(dep):
                 add(dep, arcname=os.path.basename(dep))
         elif dep.endswith('.tex') and strip_comments:
