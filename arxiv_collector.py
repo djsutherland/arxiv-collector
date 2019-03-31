@@ -4,6 +4,7 @@ from __future__ import print_function
 import collections
 from functools import partial
 import io
+from operator import eq
 import os
 import re
 import subprocess
@@ -78,7 +79,7 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
     pkg_re = re.compile('/' + '|'.join(re.escape(p) for p in packages) + '/')
 
     end_line = u'#===End dependents for {}:\n'.format(base_name)
-    for line in read_until(end_line.__eq__):
+    for line in read_until(partial(eq, end_line)):
         dep = line.strip()
         if dep.endswith('\\'):
             dep = dep[:-1]
