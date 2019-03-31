@@ -66,7 +66,7 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
             arcname = path
 
         if not os.path.exists(dest):
-            raise OSError("{} doesn't exist!".format(path))
+            raise OSError("'{}' doesn't exist!".format(path))
         if verbosity >= 2:
             print("Adding {}".format(dest))
             print("    as {}".format(arcname))
