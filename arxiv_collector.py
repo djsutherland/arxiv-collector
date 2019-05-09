@@ -78,6 +78,7 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
     assert next_line().strip() == '{}.pdf :\\'.format(base_name)
 
     pkg_re = re.compile('/' + '|'.join(re.escape(p) for p in packages) + '/')
+    used_bib = False
 
     end_line = u'#===End dependents for {}:\n'.format(base_name)
     for line in read_until(partial(eq, end_line)):
@@ -107,7 +108,7 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
             # old versions of latexmk output both the converted and the not
             pass
         elif dep.endswith('.bib'):
-            pass
+            used_bib = True
         else:
             add(dep)
 
@@ -120,7 +121,13 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
         subprocess.check_call(['latexmk', '-C', base_name])
         sys.exit(proc.returncode)
 
-    out_tar.add('{}.bbl'.format(base_name))
+    bbl_pth = '{}.bbl'.format(base_name)
+    if os.path.exists(bbl_pth):
+        add(bbl_pth)
+    elif used_bib:
+        print("Used a .bib file, but didn't find '{}'; this likely won't work."
+              .format(bbl_pth))
+
 
 
 def main():
