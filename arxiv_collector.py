@@ -72,7 +72,8 @@ def collect(out_tar, base_name='main', packages=('biblatex',),
             print("    as {}".format(arcname))
         out_tar.add(dest, arcname=arcname, **kwargs)
 
-    pat = '#===Dependents(, and related info,)? for {}:\n'.format(base_name)
+    pat = '#===Dependents(, and related info,)? for {}:\n'.format(
+            re.escape(base_name))
     consume(read_until(re.compile(pat).match))
     assert next_line().strip() == '{}.pdf :\\'.format(base_name)
 
