@@ -1,3 +1,0 @@
-**Changed:**
-
-* Formatted with black

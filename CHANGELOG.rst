@@ -4,6 +4,23 @@ arxiv-collector changelog
 
 .. current developments
 
+v0.2.2
+====================
+
+**Changed:**
+
+* Formatted with black
+- Slightly better error message for non-existing files.
+
+**Fixed:**
+
+None
+
+* Better error handling when the .bbl file doesn't exist
+* Fixed errors when filename contains regex special characters
+
+
+
 v0.2.1
 ====================
 
