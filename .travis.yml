@@ -1,0 +1,20 @@
+language: python
+python:
+  - "2.7"
+install:
+- source ./texlive_install.sh
+- pip install arxiv-collector
+addons:
+  apt:
+    packages:
+    - zip
+cache:
+  directories:
+  - "/tmp/texlive"
+  - "$HOME/.texlive"
+script:
+- cd test
+- latexmk
+- arxiv-collector --debug test.tex
+
+
