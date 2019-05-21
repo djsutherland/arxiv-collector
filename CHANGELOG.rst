@@ -9,8 +9,6 @@ v0.2.3
 
 **Added:**
 
-None
-
 * Better ``--help`` output.
 * Option to use a non-default ``latexmk`` path
 
@@ -30,7 +28,7 @@ v0.2.2
 **Changed:**
 
 * Formatted with black
-- Slightly better error message for non-existing files.
+* Slightly better error message for non-existing files.
 
 **Fixed:**
 
@@ -46,13 +44,21 @@ v0.2.1
 
 **Fixed:**
 
-- Handle package inclusion correctly on Windows (#6 -- thanks @ast0815)
+* Handle package inclusion correctly on Windows (#6 -- thanks @ast0815)
 
 
 
 v0.2.0
 ====================
 
+**Added:**
+
+* Options for output verbosity.
+
+**Fixed:**
+
+* Fix Python 2 bug.
+* Crash instead of looping forever if there's a cycle of symlinks.
 
 
 v0.1.1
