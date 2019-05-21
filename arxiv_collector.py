@@ -5,7 +5,9 @@ import collections
 from functools import partial
 import io
 import os
+import random
 import re
+import string
 import subprocess
 import sys
 import tarfile
@@ -56,12 +58,15 @@ def collect(
     def eat(*args, **kwargs):
         pass
 
-    output = partial(print, file=sys.stderr)
-    error = output
+    output = partial(print)
+    error = partial(print, file=sys.stderr)
     main = output if verbosity >= 1 else eat
     info = output if verbosity >= 2 else eat
     lowlevel = output if verbosity >= 3 else eat
     debug = output if verbosity >= 10 else eat
+
+    while os.path.exists(deps_file):
+        deps_file = deps_file + "-" + random.choice(string.ascii_lowercase)
 
     # Use latexmk to:
     #  - make sure we have a good main.bbl file
@@ -86,6 +91,8 @@ def collect(
         error("\nOutput was:\n" + e.output.decode())
         sys.exit(e.returncode)
 
+    debug(output.decode())
+
     main("Build complete, gathering outputs...")
 
     def add(path, arcname=None, **kwargs):
@@ -101,7 +108,9 @@ def collect(
         out_tar.add(dest, arcname=arcname, **kwargs)
 
     def expect(seen, exp):
-        if seen.strip() not in exp:
+        if seen.endswith("\n"):
+            seen = seen[:-1]
+        if seen not in exp:
             msg = "deps file {} seems broken: expected the line\n{}\n  to be {}".format(
                 deps_file,
                 seen,
@@ -152,6 +161,7 @@ def collect(
                     tarinfo.size = g.tell()
                     g.seek(0)
                     out_tar.addfile(tarinfo=tarinfo, fileobj=g)
+                    info("Adding", dep, "with comments stripped")
             elif dep.endswith(".eps"):
                 # arxiv doesn't like epstopdf in subdirectories
                 base = dep[:-4]
