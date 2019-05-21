@@ -173,6 +173,9 @@ def collect(
                 used_bib = True
             else:
                 add(dep)
+        else:
+            # hit end of file without the break...
+            expect(line, [end_line])
 
         try:
             bogus = next(lines)
