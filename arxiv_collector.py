@@ -91,7 +91,7 @@ def collect(
         out_tar.add(dest, arcname=arcname, **kwargs)
 
     pat = "#===Dependents(, and related info,)? for {}:\n".format(re.escape(base_name))
-    consume(read_until(re.compile(pat).match))
+    consume(read_until(re.compile(pat).search))
     assert next_line().strip() == "{}.pdf :\\".format(base_name)
 
     pkg_re = re.compile("/" + "|".join(re.escape(p) for p in packages) + "/")
