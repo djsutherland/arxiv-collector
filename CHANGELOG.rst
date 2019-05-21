@@ -16,8 +16,6 @@ v0.3.0
 **Changed:**
 
 * Remove some redundant info from --verbose output.
-None
-
 * Simplify code by using latexmk's ``--deps-out`` option
 
 
