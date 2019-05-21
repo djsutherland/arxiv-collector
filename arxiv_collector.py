@@ -57,11 +57,10 @@ def collect(
     #  - keep track of which files we use from certain packages
     main("Building {}...".format(base_name))
 
+    args = [latexmk, "-silent", "-pdf", "-deps", base_name]
+    debug("Running ", args)
     proc = subprocess.Popen(
-        [latexmk, "-silent", "-pdf", "-deps", base_name],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        bufsize=1,
+        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1
     )
 
     def next_line():
