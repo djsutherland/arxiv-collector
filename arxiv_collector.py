@@ -87,7 +87,9 @@ def collect(
 
         if not os.path.exists(dest):
             raise OSError("'{}' doesn't exist!".format(path))
-        info("Adding", dest, "\n    as", arcname)
+        info("Adding", dest)
+        if arcname != dest:
+            info("    as", arcname)
         out_tar.add(dest, arcname=arcname, **kwargs)
 
     pat = "#===Dependents(, and related info,)? for {}:\n".format(re.escape(base_name))
