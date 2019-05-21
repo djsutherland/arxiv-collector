@@ -4,7 +4,6 @@ from __future__ import print_function
 import collections
 from functools import partial
 import io
-import operator
 import os
 import re
 import subprocess
@@ -52,6 +51,7 @@ def collect(
     strip_comments=True,
     verbosity=1,
     latexmk="latexmk",
+    deps_file=".deps",
 ):
     def eat(*args, **kwargs):
         pass
@@ -69,28 +69,24 @@ def collect(
     #  - keep track of which files we use from certain packages
     main("Building {}...".format(base_name))
 
-    args = [latexmk, "-silent", "-pdf", "-deps", base_name]
+    args = [
+        latexmk,
+        "-silent",
+        "-pdf",
+        "-deps",
+        "-deps-out={}".format(deps_file),
+        base_name,
+    ]
     debug("Running ", args)
-    proc = subprocess.Popen(
-        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1
-    )
+    try:
+        output = subprocess.check_output(args, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        error("Build failed with code {}".format(e.returncode))
+        error("Called {}".format(args))
+        error("\nOutput was:\n" + e.output.decode())
+        sys.exit(e.returncode)
 
-    def next_line():
-        s = proc.stdout.readline().decode()
-        if s:
-            debug("(latexmk)\t" + s, end="")
-        return s
-
-    def read_until(check):
-        while True:
-            line = next_line()
-            if line == "":
-                raise ValueError("Unexpected EOF")
-            res = check(line)
-            assert res is not NotImplemented
-            if res:
-                return
-            yield line
+    main("Build complete, gathering outputs...")
 
     def add(path, arcname=None, **kwargs):
         dest = target(path)
@@ -104,52 +100,76 @@ def collect(
             info("    as", arcname)
         out_tar.add(dest, arcname=arcname, **kwargs)
 
-    pat = "#===Dependents(, and related info,)? for {}:\n".format(re.escape(base_name))
-    consume(read_until(re.compile(pat).search))
-    assert next_line().strip() == "{}.pdf :\\".format(base_name)
+    def expect(seen, exp):
+        if seen.strip() not in exp:
+            msg = "deps file {} seems broken: expected the line\n{}\n  to be {}".format(
+                deps_file,
+                seen,
+                ("one of:\n" + "\n".join(exp)) if len(exp) > 1 else exp[0],
+            )
+            raise ValueError(msg)
 
-    pkg_re = re.compile("/" + "|".join(re.escape(p) for p in packages) + "/")
-    used_bib = False
+    with io.open(deps_file, "rt") as f:
+        lines = iter(f)
 
-    end_line = u"#===End dependents for {}:\n".format(base_name)
-    for line in read_until(partial(operator.eq, end_line)):
-        dep = line.strip()
-        if dep.endswith("\\"):
-            dep = dep[:-1]
+        expect(
+            next(lines),
+            [
+                "#===Dependents for {}:".format(base_name),
+                "#===Dependents, and related info, for {}:".format(base_name),
+            ],
+        )
+        expect(
+            next(lines),
+            [
+                "{}.pdf :\\".format(base_name),
+                "{}.pdf {} :\\".format(base_name, deps_file),
+            ],
+        )
 
-        lowlevel("Processing", dep, "...")
+        pkg_re = re.compile("/" + "|".join(re.escape(p) for p in packages) + "/")
+        used_bib = False
 
-        if os.path.isabs(dep):
-            if pkg_re.search(dep):
-                add(dep, arcname=os.path.basename(dep))
-        elif dep.endswith(".tex") and strip_comments:
-            with io.open(dep) as f, io.BytesIO() as g:
-                tarinfo = tarfile.TarInfo(name=dep)
-                for line in f:
-                    g.write(strip_comment(line).encode("utf-8"))
-                tarinfo.size = g.tell()
-                g.seek(0)
-                out_tar.addfile(tarinfo=tarinfo, fileobj=g)
-        elif dep.endswith(".eps"):
-            # arxiv doesn't like epstopdf in subdirectories
-            base = dep[:-4]
-            add(base + "-eps-converted-to.pdf", arcname=base + ".pdf")
-        elif dep.endswith("-eps-converted-to.pdf"):
-            # old versions of latexmk output both the converted and the not
+        end_line = u"#===End dependents for {}:\n".format(base_name)
+        for line in lines:
+            if line == end_line:
+                break
+
+            dep = line.strip()
+            if dep.endswith("\\"):
+                dep = dep[:-1]
+
+            lowlevel("Processing", dep, "...")
+
+            if os.path.isabs(dep):
+                if pkg_re.search(dep):
+                    add(dep, arcname=os.path.basename(dep))
+            elif dep.endswith(".tex") and strip_comments:
+                with io.open(dep) as f, io.BytesIO() as g:
+                    tarinfo = tarfile.TarInfo(name=dep)
+                    for line in f:
+                        g.write(strip_comment(line).encode("utf-8"))
+                    tarinfo.size = g.tell()
+                    g.seek(0)
+                    out_tar.addfile(tarinfo=tarinfo, fileobj=g)
+            elif dep.endswith(".eps"):
+                # arxiv doesn't like epstopdf in subdirectories
+                base = dep[:-4]
+                add(base + "-eps-converted-to.pdf", arcname=base + ".pdf")
+            elif dep.endswith("-eps-converted-to.pdf"):
+                # old versions of latexmk output both the converted and the not
+                pass
+            elif dep.endswith(".bib"):
+                used_bib = True
+            else:
+                add(dep)
+
+        try:
+            bogus = next(lines)
+        except StopIteration:
             pass
-        elif dep.endswith(".bib"):
-            used_bib = True
         else:
-            add(dep)
-
-    consume(iter(proc.stdout.read, b""))
-    proc.wait()
-
-    if proc.returncode:
-        msg = "Build failed! Run   latexmk -pdf {}   to see why."
-        error(msg.format(base_name))
-        subprocess.check_call(["latexmk", "-C", base_name])
-        sys.exit(proc.returncode)
+            expect(bogus, ["[end of file]"])
 
     bbl_pth = "{}.bbl".format(base_name)
     if os.path.exists(bbl_pth):
@@ -157,6 +177,8 @@ def collect(
     elif used_bib:
         msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
         error(msg.format(bbl_pth))
+
+    os.unlink(deps_file)
 
 
 def main():
