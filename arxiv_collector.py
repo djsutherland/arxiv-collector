@@ -238,6 +238,7 @@ def main():
             packages=args.packages,
             strip_comments=args.strip_comments,
             verbosity=args.verbosity,
+            latexmk=args.latexmk,
         )
     print("Output in {}".format(args.dest))
 
