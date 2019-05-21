@@ -13,7 +13,9 @@ Main features:
 
 Requirements:
 
-- A working installation of [`latexmk`](http://personal.psu.edu/jcc8/software/latexmk/), on your PATH.
+- A working installation of [`latexmk`](http://personal.psu.edu/jcc8/software/latexmk/), on your PATH. (This is used to make the `.bbl` file and to track which files are used.)
+
+*NOTE:* `latexmk` versions 4.63b and 4.64, the latest versions as of this writing, have broken dependency tracking, which means `arxiv-collector` won't work with them. Luckily, `latexmk` is just a standalone perl script, so you can download a working version with `arxiv-collector --get-latexmk path/to/output/file`, and either put it in e.g. `~/bin` or pass `--latexmk` to your `arxiv-collector` invocations.
 
 
 The script has only really been tested on my own projects; let me know if you run into any problems.

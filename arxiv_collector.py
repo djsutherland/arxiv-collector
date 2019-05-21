@@ -31,6 +31,52 @@ def target(fname):
     return fname
 
 
+def get_latexmk(version="4.61", dest="latexmk", verbose=True):
+    try:
+        from urllib.request import urlopen
+    except ImportError:
+        from urllib import urlopen
+    import shutil
+    import zipfile
+
+    v = version.replace(".", "")
+    url = "http://personal.psu.edu/jcc8/software/latexmk-jcc/latexmk-{}.zip".format(v)
+
+    with io.BytesIO() as bio:
+        if verbose:
+            print("Downloading latexmk {}...".format(version), file=sys.stderr, end="")
+        with urlopen(url) as web:
+            shutil.copyfileobj(web, bio, length=131072)
+
+        with zipfile.ZipFile(bio) as z:
+            for zinfo in z.infolist():
+                if os.path.basename(zinfo.filename) == "latexmk.pl":
+                    with z.open(zinfo) as script, io.open(dest, "wb") as out:
+                        shutil.copyfileobj(script, out)
+
+                    # executable: https://stackoverflow.com/a/30463972/344821
+                    mode = os.stat(dest).st_mode
+                    mode |= (mode & 0o444) >> 2  # copy R bits to X
+                    os.chmod(dest, mode)
+                    break
+            else:
+                raise ValueError("Couldn't find latexmk.pl in {}".format(url))
+
+        if verbose:
+            print("saved to `{}`.".format(dest), file=sys.stderr)
+
+
+version_re = re.compile(r"Latexmk, John Collins, \d+ \w+ \d+\. Version (.*)$")
+
+
+def get_latexmk_version(latexmk="latexmk"):
+    out = subprocess.check_output([latexmk, "--version"], stderr=subprocess.DEVNULL)
+    match = version_re.search(out.decode())
+    if not match:
+        raise ValueError("Bad output of {} --version:\n{}".format(latexmk, out))
+    return match.group(1)
+
+
 # based on https://stackoverflow.com/a/1094933/344821
 def sizeof_fmt(num, suffix="B", prec=0, pad=False):
     width = 3 if pad else ""
@@ -258,7 +304,28 @@ def main():
     parser.add_argument(
         "--version", action="version", version="%(prog)s {}".format(__version__)
     )
+    fetch = parser.add_argument_group("get a latexmk version")
+    fetch.add_argument(
+        "--get-latexmk", metavar="PATH", help="Fetch the latexmk script to PATH."
+    )
+    fetch.add_argument(
+        "--get-latexmk-version",
+        metavar="VERSION",
+        default="4.61",
+        help="Version of latexmk to get [default %(default)s].",
+    )
     args = parser.parse_args()
+
+    if args.get_latexmk:
+        if os.path.exists(args.get_latexmk):
+            msg = "Output `{}` already exists; delete it first if you want."
+            parser.error(msg.format(args.get_latexmk))
+        get_latexmk(
+            version=args.get_latexmk_version,
+            dest=args.get_latexmk,
+            verbose=args.verbosity >= 1,
+        )
+        parser.exit(0)
 
     if not args.base_name:
         from glob import glob
@@ -280,6 +347,17 @@ def main():
 
     if args.skip_biblatex:
         args.packages.remove("biblatex")
+
+    # check latexmk version works
+    version = get_latexmk_version(args.latexmk)
+    if version in {"4.63b", "4.64"}:
+        msg = (
+            "Your latexmk version ({}) has broken dependency tracking, so it "
+            "won't work for us.\n"
+            "Use `arxiv-collector --get-latexmk ./latexmk` to get a working "
+            "version to the file `./latexmk`, then pass `--latexmk ./latexmk`."
+        )
+        raise ValueError(msg.format(version))
 
     with tarfile.open(args.dest, mode="w:gz") as t:
         collect(
