@@ -4,6 +4,26 @@ arxiv-collector changelog
 
 .. current developments
 
+v0.2.3
+====================
+
+**Added:**
+
+None
+
+* Better ``--help`` output.
+* Option to use a non-default ``latexmk`` path
+
+**Changed:**
+
+* Made ``--debug`` more useful (and way louder).
+
+**Fixed:**
+
+* Fixed bug when dependents message isn't the entire line (#8); thanks to @hysikerwelt for reporting.
+
+
+
 v0.2.2
 ====================
 
