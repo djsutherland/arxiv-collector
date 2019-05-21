@@ -150,17 +150,32 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("base_name", nargs="?")
-    parser.add_argument("--dest", default="arxiv.tar.gz")
-
     parser.add_argument(
+        "base_name",
+        nargs="?",
+        help="Name of the main tex file; default tries to guess.",
+    )
+    parser.add_argument(
+        "--dest", default="arxiv.tar.gz", help="Output path [default: %(default)s]."
+    )
+
+    pkgs = parser.add_argument_group("packages to include")
+    pkgs.add_argument(
         "--include-package",
         "-p",
         action="append",
         dest="packages",
         default=["biblatex"],
+        help=(
+            "Include a system package in the collection if used; can pass more "
+            "than once. Default is only biblatex."
+        ),
     )
-    parser.add_argument("--skip-biblatex", action="store_true")
+    pkgs.add_argument(
+        "--skip-biblatex",
+        action="store_true",
+        help="Don't include biblatex even if it's used.",
+    )
 
     parser.add_argument(
         "--latexmk",
@@ -168,21 +183,28 @@ def main():
         help="Path to the latexmk command [default: %(default)s].",
     )
 
-    g = parser.add_mutually_exclusive_group()
+    contents = parser.add_argument_group("content options")
+    g = contents.add_mutually_exclusive_group()
     g.add_argument(
         "--strip-comments",
         action="store_true",
         default=True,
         help="Strip comments from all .tex files (by default).",
     )
-    g.add_argument("--no-strip-comments", action="store_false", dest="strip_comments")
-
-    g = parser.add_mutually_exclusive_group()
     g.add_argument(
-        "--verbose", "-v", action="store_const", const=2, dest="verbosity", default=1
+        "--no-strip-comments",
+        action="store_false",
+        dest="strip_comments",
+        help="Don't strip comments from any .tex files.",
     )
-    g.add_argument("--quiet", "-q", action="store_const", const=1, dest="verbosity")
-    g.add_argument("--debug", action="store_const", const=10, dest="verbosity")
+
+    output = parser.add_argument_group("output options")
+    g = output.add_mutually_exclusive_group()
+    opt = partial(g.add_argument, action="store_const", dest="verbosity")
+    opt("--verbose", "-v", const=2, default=1, help="Include some extra output.")
+    opt("--quiet", "-q", const=1, help="Default amount of verbosity.")
+    opt("--silent", const=0, help="Only print error messages.")
+    opt("--debug", const=10, help="Print lots and lots of output.")
 
     parser.add_argument(
         "--version", action="version", version="%(prog)s {}".format(__version__)
