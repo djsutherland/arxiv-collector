@@ -110,12 +110,12 @@ def collect(
                 add(dep, arcname=os.path.basename(dep))
         elif dep.endswith(".tex") and strip_comments:
             with io.open(dep) as f, io.BytesIO() as g:
-                info = tarfile.TarInfo(name=dep)
+                tarinfo = tarfile.TarInfo(name=dep)
                 for line in f:
                     g.write(strip_comment(line).encode("utf-8"))
-                info.size = g.tell()
+                tarinfo.size = g.tell()
                 g.seek(0)
-                out_tar.addfile(tarinfo=info, fileobj=g)
+                out_tar.addfile(tarinfo=tarinfo, fileobj=g)
         elif dep.endswith(".eps"):
             # arxiv doesn't like epstopdf in subdirectories
             base = dep[:-4]
