@@ -34,7 +34,12 @@ strip_comment = partial(re.compile(r"(^|[^\\])%.*").sub, r"\1%")
 
 
 def collect(
-    out_tar, base_name="main", packages=("biblatex",), strip_comments=True, verbosity=1
+    out_tar,
+    base_name="main",
+    packages=("biblatex",),
+    strip_comments=True,
+    verbosity=1,
+    latexmk="latexmk",
 ):
     # Use latexmk to:
     #  - make sure we have a good main.bbl file
@@ -44,7 +49,7 @@ def collect(
         print("Building {}...".format(base_name))
 
     proc = subprocess.Popen(
-        ["latexmk", "-silent", "-pdf", "-deps", base_name],
+        [latexmk, "-silent", "-pdf", "-deps", base_name],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         bufsize=1,
@@ -150,6 +155,12 @@ def main():
         default=["biblatex"],
     )
     parser.add_argument("--skip-biblatex", action="store_true")
+
+    parser.add_argument(
+        "--latexmk",
+        default="latexmk",
+        help="Path to the latexmk command [default: %(default)s].",
+    )
 
     g = parser.add_mutually_exclusive_group()
     g.add_argument(
