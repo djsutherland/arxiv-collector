@@ -4,7 +4,7 @@ from __future__ import print_function
 import collections
 from functools import partial
 import io
-from operator import eq
+import operator
 import os
 import re
 import subprocess
@@ -98,7 +98,7 @@ def collect(
     used_bib = False
 
     end_line = u"#===End dependents for {}:\n".format(base_name)
-    for line in read_until(partial(eq, end_line)):
+    for line in read_until(partial(operator.eq, end_line)):
         dep = line.strip()
         if dep.endswith("\\"):
             dep = dep[:-1]
