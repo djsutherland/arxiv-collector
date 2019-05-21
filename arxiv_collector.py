@@ -41,12 +41,21 @@ def collect(
     verbosity=1,
     latexmk="latexmk",
 ):
+    def eat(*args, **kwargs):
+        pass
+
+    output = partial(print, file=sys.stderr)
+    error = output
+    main = output if verbosity >= 1 else eat
+    info = output if verbosity >= 2 else eat
+    lowlevel = output if verbosity >= 3 else eat
+    debug = output if verbosity >= 10 else eat
+
     # Use latexmk to:
     #  - make sure we have a good main.bbl file
     #  - figure out which files we actually use (to not include unused figures)
     #  - keep track of which files we use from certain packages
-    if verbosity >= 1:
-        print("Building {}...".format(base_name))
+    main("Building {}...".format(base_name))
 
     proc = subprocess.Popen(
         [latexmk, "-silent", "-pdf", "-deps", base_name],
@@ -56,7 +65,9 @@ def collect(
     )
 
     def next_line():
-        return proc.stdout.readline().decode()
+        s = proc.stdout.readline().decode()
+        debug("(latexmk)\t" + s)
+        return s
 
     def read_until(check):
         while True:
@@ -76,9 +87,7 @@ def collect(
 
         if not os.path.exists(dest):
             raise OSError("'{}' doesn't exist!".format(path))
-        if verbosity >= 2:
-            print("Adding {}".format(dest))
-            print("    as {}".format(arcname))
+        info("Adding", dest, "\n    as", arcname)
         out_tar.add(dest, arcname=arcname, **kwargs)
 
     pat = "#===Dependents(, and related info,)? for {}:\n".format(re.escape(base_name))
@@ -94,8 +103,7 @@ def collect(
         if dep.endswith("\\"):
             dep = dep[:-1]
 
-        if verbosity >= 3:
-            print("Processing", dep, "...")
+        lowlevel("Processing", dep, "...")
 
         if os.path.isabs(dep):
             if pkg_re.search(dep):
@@ -124,7 +132,8 @@ def collect(
     proc.wait()
 
     if proc.returncode:
-        print("Build failed! Run   latexmk -pdf {}   to see why.".format(base_name))
+        msg = "Build failed! Run   latexmk -pdf {}   to see why."
+        error(msg.format(base_name))
         subprocess.check_call(["latexmk", "-C", base_name])
         sys.exit(proc.returncode)
 
@@ -132,11 +141,8 @@ def collect(
     if os.path.exists(bbl_pth):
         add(bbl_pth)
     elif used_bib:
-        print(
-            "Used a .bib file, but didn't find '{}'; this likely won't work.".format(
-                bbl_pth
-            )
-        )
+        msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
+        error(msg.format(bbl_pth))
 
 
 def main():
