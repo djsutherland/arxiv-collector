@@ -31,10 +31,13 @@ def target(fname):
 
 
 # based on https://stackoverflow.com/a/1094933/344821
-def sizeof_fmt(num, suffix="B", prec=0):
+def sizeof_fmt(num, suffix="B", prec=0, pad=False):
+    width = 3 if pad else ""
     for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
-            return "{:3.{prec}f}{}{}".format(num, unit, suffix, prec=prec)
+            return "{:{width}.{prec}f}{}{}".format(
+                num, unit, suffix, prec=prec, width=width
+            )
         num /= 1024.0
     return "{:.{prec}f}{}{}".format(num, "Yi", suffix, prec=prec)
 
