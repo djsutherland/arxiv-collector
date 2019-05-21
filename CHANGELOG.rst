@@ -4,6 +4,24 @@ arxiv-collector changelog
 
 .. current developments
 
+v0.3.0
+====================
+
+**Added:**
+
+* Check that your `latexmk` isn't a known-broken version.
+* `--get-latexmk` utility to easily download an arbitrary `latexmk` version.
+* Output number of files and total archive size when done
+
+**Changed:**
+
+* Remove some redundant info from --verbose output.
+None
+
+* Simplify code by using latexmk's ``--deps-out`` option
+
+
+
 v0.2.3
 ====================
 
