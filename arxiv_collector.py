@@ -16,10 +16,6 @@ import tarfile
 __version__ = "0.3.0"
 
 
-def consume(iterator):
-    collections.deque(iterator, maxlen=0)
-
-
 def target(fname):
     seen_names = {fname}
     while os.path.islink(fname):
