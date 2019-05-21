@@ -30,6 +30,15 @@ def target(fname):
     return fname
 
 
+# based on https://stackoverflow.com/a/1094933/344821
+def sizeof_fmt(num, suffix="B", prec=0):
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return "{:3.{prec}f}{}{}".format(num, unit, suffix, prec=prec)
+        num /= 1024.0
+    return "{:.{prec}f}{}{}".format(num, "Yi", suffix, prec=prec)
+
+
 strip_comment = partial(re.compile(r"(^|[^\\])%.*").sub, r"\1%")
 
 
@@ -243,7 +252,9 @@ def main():
             verbosity=args.verbosity,
             latexmk=args.latexmk,
         )
-    print("Output in {}".format(args.dest))
+        n_members = len(t.getmembers())
+    sz = sizeof_fmt(os.stat(args.dest).st_size)
+    print("Output in {}: {} files, {} compressed".format(args.dest, n_members, sz))
 
 
 if __name__ == "__main__":
