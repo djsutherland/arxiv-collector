@@ -65,7 +65,8 @@ def collect(
 
     def next_line():
         s = proc.stdout.readline().decode()
-        debug("(latexmk)\t" + s)
+        if s:
+            debug("(latexmk)\t" + s, end="")
         return s
 
     def read_until(check):
