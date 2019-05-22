@@ -27,7 +27,7 @@ def target(fname):
     return fname
 
 
-def get_latexmk(version="4.61", dest="latexmk", verbose=True):
+def get_latexmk(version="4.64a", dest="latexmk", verbose=True):
     try:
         from urllib.request import urlopen
     except ImportError:
@@ -307,7 +307,7 @@ def main():
     fetch.add_argument(
         "--get-latexmk-version",
         metavar="VERSION",
-        default="4.61",
+        default="4.64a",
         help="Version of latexmk to get [default %(default)s].",
     )
     args = parser.parse_args()
