@@ -7,30 +7,9 @@ arxiv-collector changelog
 v0.3.1
 ====================
 
-**Added:**
-
-
-
 **Changed:**
 
-
-
-**Deprecated:**
-
-
-
-**Removed:**
-
-
-
-**Fixed:**
-
-
-
-**Security:**
-
-
-
+* Default ``--get-latexmk`` to the new 4.64a version, which works again.
 
 
 v0.3.0
