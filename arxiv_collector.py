@@ -31,7 +31,12 @@ def get_latexmk(version="4.64a", dest="latexmk", verbose=True):
     try:
         from urllib.request import urlopen
     except ImportError:
-        from urllib import urlopen
+        from urllib2 import urlopen as _urlopen
+        from contextlib import closing
+
+        def urlopen(*args, **kwargs):
+            return closing(_urlopen(*args, **kwargs))
+
     import shutil
     import zipfile
 
