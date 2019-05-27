@@ -4,6 +4,15 @@ arxiv-collector changelog
 
 .. current developments
 
+v0.3.3
+====================
+
+**Fixed:**
+
+* Fix another python 2 error. (Can people just use 3 already?)
+
+
+
 v0.3.2
 ====================
 
