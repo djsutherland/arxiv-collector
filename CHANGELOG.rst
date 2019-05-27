@@ -4,6 +4,15 @@ arxiv-collector changelog
 
 .. current developments
 
+v0.3.2
+====================
+
+**Fixed:**
+
+* Fixed ``--get-latexmk`` in python 2.
+
+
+
 v0.3.1
 ====================
 
