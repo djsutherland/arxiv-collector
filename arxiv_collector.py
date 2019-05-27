@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import collections
 from functools import partial
 import io
 import os
@@ -11,6 +10,11 @@ import string
 import subprocess
 import sys
 import tarfile
+
+try:
+    from subprocess import DEVNULL
+except ImportError:
+    from os import devnull as DEVNULL
 
 
 __version__ = "0.3.2"
@@ -71,7 +75,7 @@ version_re = re.compile(r"Latexmk, John Collins, \d+ \w+ \d+\. Version (.*)$")
 
 
 def get_latexmk_version(latexmk="latexmk"):
-    out = subprocess.check_output([latexmk, "--version"], stderr=subprocess.DEVNULL)
+    out = subprocess.check_output([latexmk, "--version"], stderr=DEVNULL)
     match = version_re.search(out.decode())
     if not match:
         raise ValueError("Bad output of {} --version:\n{}".format(latexmk, out))
