@@ -14,12 +14,12 @@ Main features:
 Requirements:
 
 - A working installation of [`latexmk`](http://personal.psu.edu/jcc8/software/latexmk/), on your PATH. (This is used to make the `.bbl` file and to track which files are used.)
-  - If you have working TeX and Perl installations, you can either install latexmk the "normal" way (e.g. `tmlgr`, `apt-get`, ...), or just grab the standalone script with `arxiv-collector --get-latexmk path/to/output/latexmk`.
+  - If you have working TeX and Perl installations, you likely already have latexmk even if you don't use it. If you don't, you can either install latexmk the "normal" way (e.g. `tmlgr install latexmk`, `apt-get install latexmk`, ...), or just grab the standalone script with `arxiv-collector --get-latexmk path/to/output/latexmk`.
   - If `latexmk` isn't on your PATH for whatever reason, add `--latexmk ./path/to/latexmk` to your `arxiv-collector` call.
-  - **NOTE:** `latexmk` version 4.63b (the latest on CTAN as of this writing) has broken dependency tracking, which means `arxiv-collector` won't work with it. You can get a working version, e.g. 4.64a, with `arxiv-collector --get-latexmk path/to/output/file`, and either put it in e.g. `~/bin` or pass `--latexmk` to your `arxiv-collector` invocations.
+  - **NOTE:** `latexmk` version 4.63b has broken dependency tracking, which means `arxiv-collector` won't work with it. You can either update it with your package manager, or you can get a working version, e.g. 4.64a, with `arxiv-collector --get-latexmk path/to/output/latexmk`, and either put it in e.g. `~/bin` or pass `--latexmk` to your `arxiv-collector` invocations.
 
 
-The script has only really been tested on my own projects; let me know if you run into any problems.
+The script may or may not work if you do something weird with your tex project layout / etc; always check the arXiv output pdf looks reasonable. [Let me know](https://github.com/dougalsutherland/arxiv-collector/issues/new) if you run into any problems, including a copy of the not-working project if possible.
 
 Known limitations:
 
