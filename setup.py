@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="arxiv-collector",
-    version="0.3.4",
+    version="0.3.5",
     author="Dougal J. Sutherland",
     author_email="dougal@gmail.com",
     description="A small script to collect LaTeX sources for upload to the arXiv",
