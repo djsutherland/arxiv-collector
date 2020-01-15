@@ -25,7 +25,7 @@ def target(fname):
     return fname
 
 
-def get_latexmk(version="4.64a", dest="latexmk", verbose=True):
+def get_latexmk(version="ctan", dest="latexmk", verbose=True):
     try:
         from urllib.request import urlopen
     except ImportError:
@@ -38,8 +38,11 @@ def get_latexmk(version="4.64a", dest="latexmk", verbose=True):
     import shutil
     import zipfile
 
-    v = version.replace(".", "")
-    url = "http://personal.psu.edu/jcc8/software/latexmk-jcc/latexmk-{}.zip".format(v)
+    if version.lower() == "ctan":
+        url = "http://mirrors.ctan.org/support/latexmk.zip"
+    else:
+        v = version.replace(".", "")
+        url = "http://personal.psu.edu/jcc8/software/latexmk-jcc/latexmk-{}.zip".format(v)
 
     with io.BytesIO() as bio:
         if verbose:
@@ -65,14 +68,14 @@ def get_latexmk(version="4.64a", dest="latexmk", verbose=True):
             print("saved to `{}`.".format(dest), file=sys.stderr)
 
 
-version_re = re.compile(r"Latexmk, John Collins, \d+ \w+ \d+\. Version (.*)$")
+version_re = re.compile(r"Latexmk, John Collins, \d+ \w+\.? \d+\. Version (.*)\s*$")
 
 
 def get_latexmk_version(latexmk="latexmk"):
     with io.open(os.devnull, "w") as devnull:  # subprocess.DEVNULL is 3.3+
-        out = subprocess.check_output([latexmk, "--version"], stderr=devnull)
+        out = subprocess.check_output([latexmk, "--version"], stderr=devnull).decode()
 
-    match = version_re.search(out.decode())
+    match = version_re.search(out)
     if not match:
         raise ValueError("Bad output of {} --version:\n{}".format(latexmk, out))
     return match.group(1)
@@ -312,7 +315,7 @@ def main():
     fetch.add_argument(
         "--get-latexmk-version",
         metavar="VERSION",
-        default="4.64a",
+        default="CTAN",
         help="Version of latexmk to get [default %(default)s].",
     )
     args = parser.parse_args()
