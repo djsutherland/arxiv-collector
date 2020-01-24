@@ -7,6 +7,14 @@ arxiv-collector changelog
 v0.3.5
 ====================
 
+**Added:**
+
+* ``--get-latexmk`` now gets the latest version from CTAN by default.
+
+**Fixed:**
+
+* Handle ``latexmk --version`` output for newest version (#11).
+
 
 
 v0.3.4
