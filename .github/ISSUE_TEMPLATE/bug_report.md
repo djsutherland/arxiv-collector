@@ -7,8 +7,13 @@ assignees: ''
 
 ---
 
-Thanks for reporting an issue! If it relates to a failure handling a particular repository, please include:
+## My arxiv-collector version is:
+Paste in the output of `arxiv-collector --version`.
 
-- The output of `arxiv-collector --version`.
-- The output of `arxiv-collector --debug yourproject.tex`, inside `<details>` so it's not a million lines to scroll through.
-- If at all reasonable, attach or link to the failing project. Feel free to remove as much as possible where it still fails.
+<!-- If the failure relates to a specific project, please include the following section as well to help figure out what's going on. -->
+## Debugging output:
+<details>
+  Paste in the output of building with the `--debug` flag, e.g. `arxiv-collector --debug yourproject.tex`
+</details>
+
+<!-- Please also attach or link to the failing project. Feel free to remove anything unnecessary, e.g. images / whatever, just the smallest version of the project that you still see the failure on. -->
