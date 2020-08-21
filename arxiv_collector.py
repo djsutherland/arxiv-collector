@@ -106,6 +106,7 @@ def collect(
     latexmk="latexmk",
     deps_file=".deps",
     extract_bib=False,
+    include_bib=False,
 ):
     def eat(*args, **kwargs):
         pass
@@ -223,6 +224,8 @@ def collect(
                 pass
             elif dep.endswith(".bib"):
                 used_bib = True
+                if include_bib:
+                    add(dep)
             else:
                 add(dep)
         else:
@@ -268,6 +271,12 @@ def main():
     )
     parser.add_argument(
         "--dest", default="arxiv.tar.gz", help="Output path [default: %(default)s]."
+    )
+    parser.add_argument(
+        "--include-bib",
+        action="store_true",
+        default=False,
+        help="Include all used .bib files.",
     )
     parser.add_argument(
         "--extract-bib",
@@ -396,6 +405,7 @@ def main():
             verbosity=args.verbosity,
             latexmk=args.latexmk,
             extract_bib=args.extract_bib,
+            include_bib=args.include_bib,
         )
         n_members = len(t.getmembers())
     sz = sizeof_fmt(os.stat(args.dest).st_size)
