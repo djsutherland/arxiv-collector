@@ -7,6 +7,7 @@ import os
 import random
 import re
 import string
+import StringIO
 import subprocess
 import sys
 import tarfile
@@ -104,6 +105,7 @@ def collect(
     verbosity=1,
     latexmk="latexmk",
     deps_file=".deps",
+    extract_bib=False,
 ):
     def eat(*args, **kwargs):
         pass
@@ -241,6 +243,16 @@ def collect(
         msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
         error(msg.format(bbl_pth))
 
+    if extract_bib:
+        extracted = subprocess.check_output(["biber", "--output-format=bibtex",
+            "-O", "-", "-q", "-q", base_name + ".bcf"])
+        name = extract_bib if isinstance(extract_bib, basestring) \
+                           else base_name + "_biber.bib"
+        tarinfo = tarfile.TarInfo(name=name)
+        tarinfo.size = len(extracted)
+        out_tar.addfile(tarinfo=tarinfo, fileobj=StringIO.StringIO(extracted))
+        info("Adding extracted biblatex file", name)
+
     os.unlink(deps_file)
 
 
@@ -256,6 +268,18 @@ def main():
     )
     parser.add_argument(
         "--dest", default="arxiv.tar.gz", help="Output path [default: %(default)s]."
+    )
+    parser.add_argument(
+        "--extract-bib",
+        nargs='?',
+        dest="extract_bib",
+        const=True,
+        default=False,
+        help=(
+            "Extracted and include used biblatex entries. "
+            "Accepts optional filename in which extracted entries are "
+            "stored, which defaults to [base_name]_biber.bib"
+        ),
     )
 
     pkgs = parser.add_argument_group("packages to include")
@@ -371,6 +395,7 @@ def main():
             strip_comments=args.strip_comments,
             verbosity=args.verbosity,
             latexmk=args.latexmk,
+            extract_bib=args.extract_bib,
         )
         n_members = len(t.getmembers())
     sz = sizeof_fmt(os.stat(args.dest).st_size)
