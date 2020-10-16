@@ -1,5 +1,5 @@
 $PROJECT = $GITHUB_REPO = 'arxiv-collector'
-$GITHUB_ORG = 'dougalsutherland'
+$GITHUB_ORG = 'djsutherland'
 
 $ACTIVITIES = [
     'version_bump',

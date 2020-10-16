@@ -19,7 +19,7 @@ Requirements:
   - **NOTE:** `latexmk` version 4.63b has broken dependency tracking, which means `arxiv-collector` won't work with it. You can either update it with your package manager, or you can get a working version, e.g. 4.64a, with `arxiv-collector --get-latexmk path/to/output/latexmk`, and either put it in e.g. `~/bin` or pass `--latexmk` to your `arxiv-collector` invocations.
 
 
-The script may or may not work if you do something weird with your tex project layout / etc; always check the arXiv output pdf looks reasonable. [Let me know](https://github.com/dougalsutherland/arxiv-collector/issues/new) if you run into any problems, including a copy of the not-working project if possible.
+The script may or may not work if you do something weird with your tex project layout / etc; always check the arXiv output pdf looks reasonable. [Let me know](https://github.com/djsutherland/arxiv-collector/issues/new) if you run into any problems, including a copy of the not-working project if possible.
 
 Known limitations:
 
