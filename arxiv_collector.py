@@ -13,6 +13,9 @@ import tarfile
 
 __version__ = "0.3.5"
 
+################################################################################
+# General helpers
+
 
 def target(fname):
     seen_names = {fname}
@@ -23,6 +26,50 @@ def target(fname):
         seen_names.add(new)
         fname = new
     return fname
+
+
+# based on https://stackoverflow.com/a/1094933/344821
+def sizeof_fmt(num, suffix="B", prec=0, pad=False):
+    width = 3 if pad else ""
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return "{:{width}.{prec}f}{}{}".format(
+                num, unit, suffix, prec=prec, width=width
+            )
+        num /= 1024.0
+    return "{:.{prec}f}{}{}".format(num, "Yi", suffix, prec=prec)
+
+
+def _eat(*args, **kwargs):
+    pass
+
+
+def expect(seen, exp, deps_file):
+    if seen.endswith("\n"):
+        seen = seen[:-1]
+    if seen not in exp:
+        msg = "deps file {} seems broken: expected the line\n{}\n  to be {}".format(
+            deps_file, seen, ("one of:\n" + "\n".join(exp)) if len(exp) > 1 else exp[0],
+        )
+        raise ValueError(msg)
+
+
+def expect_re(seen, pattern, deps_file, error_msg=None):
+    if seen.endswith("\n"):
+        seen = seen[:-1]
+    match = re.match(pattern, seen)
+    if not match:
+        msg = "deps file {} seems broken: confused by line\n{}".format(deps_file, seen)
+        if error_msg is not None:
+            msg += error_msg
+        raise ValueError(msg)
+    return match
+
+
+strip_comment = partial(re.compile(r"(^|[^\\])%.*").sub, r"\1%")
+
+################################################################################
+# Utilities to check and download latexmk
 
 
 def get_latexmk(version="ctan", dest="latexmk", verbose=True):
@@ -42,7 +89,9 @@ def get_latexmk(version="ctan", dest="latexmk", verbose=True):
         url = "http://mirrors.ctan.org/support/latexmk.zip"
     else:
         v = version.replace(".", "")
-        url = "http://personal.psu.edu/jcc8/software/latexmk-jcc/latexmk-{}.zip".format(v)
+        url = "http://personal.psu.edu/jcc8/software/latexmk-jcc/latexmk-{}.zip".format(
+            v
+        )
 
     with io.BytesIO() as bio:
         if verbose:
@@ -81,48 +130,26 @@ def get_latexmk_version(latexmk="latexmk"):
     return match.group(1)
 
 
-# based on https://stackoverflow.com/a/1094933/344821
-def sizeof_fmt(num, suffix="B", prec=0, pad=False):
-    width = 3 if pad else ""
-    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
-        if abs(num) < 1024.0:
-            return "{:{width}.{prec}f}{}{}".format(
-                num, unit, suffix, prec=prec, width=width
-            )
-        num /= 1024.0
-    return "{:.{prec}f}{}{}".format(num, "Yi", suffix, prec=prec)
+################################################################################
+# Gather the dependency file via latexmk
+
+class LatexmkException(Exception):
+    def __init__(self, message, base_error=None):
+        super(LatexmkException, self).__init__(message)
+        self.base_error = base_error
 
 
-strip_comment = partial(re.compile(r"(^|[^\\])%.*").sub, r"\1%")
-
-
-def collect(
-    out_tar,
-    base_name="main",
-    packages=("biblatex",),
-    strip_comments=True,
-    verbosity=1,
-    latexmk="latexmk",
-    deps_file=".deps",
-):
-    def eat(*args, **kwargs):
-        pass
-
-    output = partial(print)
-    error = partial(print, file=sys.stderr)
-    main = output if verbosity >= 1 else eat
-    info = output if verbosity >= 2 else eat
-    lowlevel = output if verbosity >= 3 else eat
-    debug = output if verbosity >= 10 else eat
-
-    while os.path.exists(deps_file):
-        deps_file = deps_file + "-" + random.choice(string.ascii_lowercase)
-
+def get_deps(base_name="main", latexmk="latexmk", deps_file=".deps", verbosity=1):
     # Use latexmk to:
     #  - make sure we have a good main.bbl file
     #  - figure out which files we actually use (to not include unused figures)
     #  - keep track of which files we use from certain packages
-    main("Building {}...".format(base_name))
+    debug = print if verbosity >= 10 else _eat
+    lowlevel = print if verbosity >= 3 else _eat
+
+    while os.path.exists(deps_file):
+        debug("{} already exists...".format(deps_file))
+        deps_file = deps_file + "-" + random.choice(string.ascii_lowercase)
 
     args = [
         latexmk,
@@ -136,14 +163,36 @@ def collect(
     try:
         output = subprocess.check_output(args, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        error("Build failed with code {}".format(e.returncode))
-        error("Called {}".format(args))
-        error("\nOutput was:\n" + e.output.decode())
-        sys.exit(e.returncode)
+        msg = (
+            "Build failed with code {}\n".format(e.returncode) +
+            "Called {}\n".format(args) +
+            "\nOutput was:\n" + e.output.decode()
+        )
+        raise LatexmkException(msg, base_error=e)
 
     debug(output.decode())
+    lowlevel("Dependencies in {}".format(deps_file))
 
-    main("Build complete, gathering outputs...")
+    return deps_file
+
+
+################################################################################
+# Gather everything into a tar file
+
+
+def collect(
+    out_tar,
+    deps_file,
+    packages=("biblatex",),
+    strip_comments=True,
+    verbosity=1,
+    latexmk="latexmk",
+    delete_deps_after=False,
+):
+    error = partial(print, file=sys.stderr)
+    info = print if verbosity >= 2 else _eat
+    lowlevel = print if verbosity >= 3 else _eat
+    # debug = print if verbosity >= 10 else _eat
 
     def add(path, arcname=None, **kwargs):
         dest = target(path)
@@ -157,33 +206,23 @@ def collect(
             info("    as", arcname)
         out_tar.add(dest, arcname=arcname, **kwargs)
 
-    def expect(seen, exp):
-        if seen.endswith("\n"):
-            seen = seen[:-1]
-        if seen not in exp:
-            msg = "deps file {} seems broken: expected the line\n{}\n  to be {}".format(
-                deps_file,
-                seen,
-                ("one of:\n" + "\n".join(exp)) if len(exp) > 1 else exp[0],
-            )
-            raise ValueError(msg)
-
     with io.open(deps_file, "rt") as f:
         lines = iter(f)
 
-        expect(
+        base_name = expect_re(
             next(lines),
-            [
-                "#===Dependents for {}:".format(base_name),
-                "#===Dependents, and related info, for {}:".format(base_name),
-            ],
-        )
+            r"#===Dependents(?:, and related info,)? for (.*):$",
+            deps_file,
+            "Expected to start with '#===Dependents'",
+        ).group(1)
+
         expect(
             next(lines),
             [
                 "{}.pdf :\\".format(base_name),
                 "{}.pdf {} :\\".format(base_name, deps_file),
             ],
+            deps_file,
         )
 
         pkg_re = re.compile("/" + "|".join(re.escape(p) for p in packages) + "/")
@@ -225,14 +264,14 @@ def collect(
                 add(dep)
         else:
             # hit end of file without the break...
-            expect(line, [end_line])
+            expect(line, [end_line], deps_file)
 
         try:
             bogus = next(lines)
         except StopIteration:
             pass
         else:
-            expect(bogus, ["[end of file]"])
+            expect(bogus, ["[end of file]"], deps_file)
 
     bbl_pth = "{}.bbl".format(base_name)
     if os.path.exists(bbl_pth):
@@ -241,10 +280,15 @@ def collect(
         msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
         error(msg.format(bbl_pth))
 
-    os.unlink(deps_file)
+    if delete_deps_after:
+        os.unlink(deps_file)
 
 
-def main():
+################################################################################
+# The overall command-line driver
+
+
+def parse_args():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -281,6 +325,16 @@ def main():
         default="latexmk",
         help="Path to the latexmk command [default: %(default)s].",
     )
+    fetch = parser.add_argument_group("get a latexmk version")
+    fetch.add_argument(
+        "--get-latexmk", metavar="PATH", help="Fetch the latexmk script to PATH."
+    )
+    fetch.add_argument(
+        "--get-latexmk-version",
+        metavar="VERSION",
+        default="CTAN",
+        help="Version of latexmk to get [default %(default)s].",
+    )
 
     contents = parser.add_argument_group("content options")
     g = contents.add_mutually_exclusive_group()
@@ -305,18 +359,14 @@ def main():
     opt("--silent", const=0, help="Only print error messages.")
     opt("--debug", const=10, help="Print lots and lots of output.")
 
+    op = parser.add_argument_group("compilation options")
+    op.add_argument(
+        "--latexmk-deps",
+        help="Skip latexmk compilation and use the preexisting dependencies file",
+    )
+
     parser.add_argument(
         "--version", action="version", version="%(prog)s {}".format(__version__)
-    )
-    fetch = parser.add_argument_group("get a latexmk version")
-    fetch.add_argument(
-        "--get-latexmk", metavar="PATH", help="Fetch the latexmk script to PATH."
-    )
-    fetch.add_argument(
-        "--get-latexmk-version",
-        metavar="VERSION",
-        default="CTAN",
-        help="Version of latexmk to get [default %(default)s].",
     )
     args = parser.parse_args()
 
@@ -331,50 +381,79 @@ def main():
         )
         parser.exit(0)
 
-    if not args.base_name:
-        from glob import glob
-
-        cands = [c[:-4] for c in glob("*.tex")]
-        if len(cands) > 1:
-            cands = list(set(cands) & {"main", "paper"})
-        if len(cands) == 1:
-            args.base_name = cands[0]
-        else:
-            parser.error("Can't guess your filename; pass BASE_NAME.")
-
-    if args.base_name.endswith(".tex"):
-        args.base_name = args.base_name[:-4]
-    if "." in args.base_name:
-        parser.error("BASE_NAME ({!r}) shouldn't contain '.'".format(args.base_name))
-    if "/" in args.base_name:
-        parser.error("cd into the directory first")
-
     if args.skip_biblatex:
         args.packages.remove("biblatex")
 
-    # check latexmk version works
-    version = get_latexmk_version(args.latexmk)
-    if version in {"4.63b", "4.64"}:
-        msg = (
-            "Your latexmk version ({}) has broken dependency tracking, so it "
-            "won't work for us.\n"
-            "Use `arxiv-collector --get-latexmk ./latexmk` to get a working "
-            "version to the file `./latexmk`, then pass `--latexmk ./latexmk`."
-        )
-        raise ValueError(msg.format(version))
+    if not args.latexmk_deps:  # if we need to worry about latexmk stuff...
+        # check latexmk version works
+        version = get_latexmk_version(args.latexmk)
+        if version in {"4.63b", "4.64"}:
+            msg = (
+                "Your latexmk version ({}) has broken dependency tracking, so it "
+                "won't work for us.\n"
+                "Use `arxiv-collector --get-latexmk ./latexmk` to get a working "
+                "version to the file `./latexmk`, then pass `--latexmk ./latexmk`."
+            )
+            raise ValueError(msg.format(version))
+
+        # guess the base name if necessary
+        if not args.base_name:
+            from glob import glob
+
+            cands = [c[:-4] for c in glob("*.tex")]
+            if len(cands) > 1:
+                cands = list(set(cands) & {"main", "paper"})
+            if len(cands) == 1:
+                args.base_name = cands[0]
+            else:
+                parser.error("Can't guess your filename; pass BASE_NAME.")
+
+        if args.base_name.endswith(".tex"):
+            args.base_name = args.base_name[:-4]
+        if "." in args.base_name:
+            parser.error(
+                "BASE_NAME ({!r}) shouldn't contain '.'".format(args.base_name)
+            )
+        if "/" in args.base_name:
+            parser.error("cd into the directory first")
+
+    return args
+
+
+def main():
+    args = parse_args()
+
+    if args.latexmk_deps:
+        deps_file = args.latexmk_deps
+    else:
+        if args.verbosity >= 1:
+            print("Building {}...".format(args.base_name))
+
+        try:
+            deps_file = get_deps(
+                base_name=args.base_name, latexmk=args.latexmk, verbosity=args.verbosity
+            )
+        except LatexmkException as e:
+            print(str(e), file=sys.stderr)
+            sys.exit(e.base_error.returncode)
+
+    if args.verbosity >= 1:
+        print("Gathering outputs...")
 
     with tarfile.open(args.dest, mode="w:gz") as t:
         collect(
-            t,
-            base_name=args.base_name,
+            out_tar=t,
+            deps_file=deps_file,
             packages=args.packages,
             strip_comments=args.strip_comments,
             verbosity=args.verbosity,
-            latexmk=args.latexmk,
+            delete_deps_after=not args.latexmk_deps,
         )
         n_members = len(t.getmembers())
     sz = sizeof_fmt(os.stat(args.dest).st_size)
-    print("Output in {}: {} files, {} compressed".format(args.dest, n_members, sz))
+
+    if args.verbosity >= 1:
+        print("Output in {}: {} files, {} compressed".format(args.dest, n_members, sz))
 
 
 if __name__ == "__main__":
