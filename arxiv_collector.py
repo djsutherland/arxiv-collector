@@ -190,6 +190,8 @@ def collect(
     verbosity=1,
     latexmk="latexmk",
     delete_deps_after=False,
+    extract_bib_name=False,
+    include_bib=False,
 ):
     error = partial(print, file=sys.stderr)
     info = print if verbosity >= 2 else _eat
@@ -262,6 +264,8 @@ def collect(
                 pass
             elif dep.endswith(".bib"):
                 used_bib = True
+                if include_bib:
+                    add(dep)
             else:
                 add(dep)
         else:
@@ -281,6 +285,24 @@ def collect(
     elif used_bib:
         msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
         error(msg.format(bbl_pth))
+
+    if extract_bib_name:
+        info("Running biber on {}.bcf...".format(base_name))
+        extracted = subprocess.check_output(
+            [
+                "biber",
+                "--output-format=bibtex",
+                "-O",
+                "-",
+                "-q",
+                "-q",
+                base_name + ".bcf",
+            ]
+        )
+        tarinfo = tarfile.TarInfo(name=extract_bib_name)
+        tarinfo.size = len(extracted)
+        out_tar.addfile(tarinfo=tarinfo, fileobj=io.BytesIO(extracted))
+        info("Adding extracted biblatex file:", extract_bib_name)
 
     if delete_deps_after:
         os.unlink(deps_file)
@@ -302,6 +324,20 @@ def parse_args():
     )
     parser.add_argument(
         "--dest", default="arxiv.tar.gz", help="Output path [default: %(default)s]."
+    )
+    parser.add_argument(
+        "--include-bib",
+        action="store_true",
+        default=False,
+        help="Include all used .bib files, even though arXiv will ignore them.",
+    )
+    parser.add_argument(
+        "--extract-bib",
+        metavar="BIB_NAME",
+        help=(
+            "Include a new .bib file which contains only the used bib entries. "
+            "arXiv will ignore this, but you might want it for another reason."
+        ),
     )
 
     pkgs = parser.add_argument_group("packages to include")
@@ -450,6 +486,8 @@ def main():
             strip_comments=args.strip_comments,
             verbosity=args.verbosity,
             delete_deps_after=not args.latexmk_deps,
+            extract_bib_name=args.extract_bib,
+            include_bib=args.include_bib,
         )
         n_members = len(t.getmembers())
     sz = sizeof_fmt(os.stat(args.dest).st_size)
