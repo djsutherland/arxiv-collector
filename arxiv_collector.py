@@ -133,6 +133,7 @@ def get_latexmk_version(latexmk="latexmk"):
 ################################################################################
 # Gather the dependency file via latexmk
 
+
 class LatexmkException(Exception):
     def __init__(self, message, base_error=None):
         super(LatexmkException, self).__init__(message)
@@ -164,9 +165,10 @@ def get_deps(base_name="main", latexmk="latexmk", deps_file=".deps", verbosity=1
         output = subprocess.check_output(args, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         msg = (
-            "Build failed with code {}\n".format(e.returncode) +
-            "Called {}\n".format(args) +
-            "\nOutput was:\n" + e.output.decode()
+            "Build failed with code {}\n".format(e.returncode)
+            + "Called {}\n".format(args)
+            + "\nOutput was:\n"
+            + e.output.decode()
         )
         raise LatexmkException(msg, base_error=e)
 
