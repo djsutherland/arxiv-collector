@@ -4,6 +4,17 @@ arxiv-collector changelog
 
 .. current developments
 
+v0.4.0
+====================
+
+**Added:**
+
+* You can now pass `--latexmk-deps` to use a pre-made dependencies file. In particular, makes it possible to run directly on Overleaf.
+* Option ``--include-bib`` to include ``.bib`` files, from @ryanakca (#14)
+* Optino ``--extract-bib NAME`` to run ``biber`` to create a single ``.bib`` file with only the used entries, from @ryanakca (#14)
+
+
+
 v0.3.5
 ====================
 
