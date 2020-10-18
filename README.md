@@ -2,7 +2,7 @@ A small script to collect your LaTeX files for submission to the arXiv. Particul
 
 ## Usage
 
-Install with `pip install arxiv-collector` or `conda install -c conda-forge arxiv-collector`.
+Install with `pip install arxiv-collector` or `conda install -c conda-forge arxiv-collector`, or just download `arxiv_collector.py` (it's standalone).
 
 Use with `arxiv-collector` from your project's main directory, or `arxiv-collector file.tex` if you have more than one `.tex` file and it can't guess correctly which one to use; `arxiv-collector --help` for more.
 
