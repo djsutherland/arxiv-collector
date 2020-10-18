@@ -2,7 +2,7 @@ A small script to collect your LaTeX files for submission to the arXiv. Particul
 
 ## Usage
 
-Install with `pip install arxiv-collector` or `conda install -c conda-forge arxiv-collector`, or just download `arxiv_collector.py` (it's standalone).
+Install with `pip install arxiv-collector` or `conda install -c conda-forge arxiv-collector` – or just download [`arxiv_collector.py`](arxiv_collector.py), it's a stand-alone script with no dependencies. Works with any reasonable version of Python 3, or 2.7 if you really must.
 
 Use with `arxiv-collector` from your project's main directory, or `arxiv-collector file.tex` if you have more than one `.tex` file and it can't guess correctly which one to use; `arxiv-collector --help` for more.
 
@@ -21,21 +21,21 @@ Use with `arxiv-collector` from your project's main directory, or `arxiv-collect
 ## Requirements:
 
 - A working installation of [`latexmk`](http://personal.psu.edu/jcc8/software/latexmk/), on your PATH. (This is used to make the `.bbl` file and to track which files are used.)
-  - If you have working TeX and Perl installations, you likely already have latexmk even if you don't use it. If you don't, you can either install latexmk the "normal" way (e.g. `tmlgr install latexmk`, `apt-get install latexmk`, ...), or just grab the standalone script with `arxiv-collector --get-latexmk path/to/output/latexmk`.
+  - If you have working TeX and Perl installations, you likely already have `latexmk` even if you don't use it. If you don't, you can either install it the "normal" way (`tmlgr install latexmk`, `apt-get install latexmk`, ...), or just grab the script with `arxiv-collector --get-latexmk path/to/output/latexmk`.
   - If `latexmk` isn't on your PATH for whatever reason, add `--latexmk ./path/to/latexmk` to your `arxiv-collector` call.
   - **NOTE:** `latexmk` version 4.63b has broken dependency tracking, which means `arxiv-collector` won't work with it. You can either update it with your package manager, or you can get a working version, e.g. 4.64a, with `arxiv-collector --get-latexmk path/to/output/latexmk`, and either put it in e.g. `~/bin` or pass `--latexmk` to your `arxiv-collector` invocations.
 
 
 ## Caveats
 
-The script may or may not work if you do something weird with your project layout / etc; always check the arXiv output pdf looks reasonable. [Let me know](https://github.com/djsutherland/arxiv-collector/issues/new) if you run into any problems, including a copy of the not-working project if possible.
+The script may or may not work if you do something weird with your project layout / etc; always check that the arXiv output pdf looks right. [Let me know](https://github.com/djsutherland/arxiv-collector/issues/new) if you run into any problems, including a copy of the not-working project if possible.
 
 In particular, if you include figures or other files with absolute paths (`\includegraphics{/home/me/wow.png}` instead of `\includegraphics{../wow.png}`), the script will think it's a system file and not include it by default. You can hack it with `--include-packages` to include any directory name in the path.
 
 
 ## Using directly on Overleaf
 
-It's easy to set up Overleaf to run the script on each compilation, so that you're always ready to upload to arXiv at a moment's notice! (It's harder to run it just once on their servers, and it shouldn't add much overhead to just do it every time.)
+It's easy to set up Overleaf to run the script on each compilation, so that you're always ready to upload to arXiv at a moment's notice! (You can of course comment out or remove the lines below after running it once, but it shouldn't add much overhead to just do it every time.)
 
 First, add `arxiv_collector.py` to your project. You can do "New file", "From external url", then put in `https://raw.githubusercontent.com/djsutherland/arxiv-collector/master/arxiv_collector.py`.
 
