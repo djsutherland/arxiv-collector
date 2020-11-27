@@ -7,6 +7,9 @@ arxiv-collector changelog
 v0.4.1
 ====================
 
+**Fixed:**
+
+* Be more flexible about filenames in the deps file; in particular, handle Overleaf better.
 
 
 v0.4.0
