@@ -287,7 +287,7 @@ def collect(
         else:
             expect(bogus, ["[end of file]"], deps_file)
 
-    bbl_pth = "{}.bbl".format(base_name)
+    bbl_pth = os.path.join(os.path.dirname(output_name), "{}.bbl".format(base_name))
     if os.path.exists(bbl_pth):
         add(bbl_pth)
     elif used_bib:
