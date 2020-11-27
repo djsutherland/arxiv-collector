@@ -4,6 +4,11 @@ arxiv-collector changelog
 
 .. current developments
 
+v0.4.1
+====================
+
+
+
 v0.4.0
 ====================
 
