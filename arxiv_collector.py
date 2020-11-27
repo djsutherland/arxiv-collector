@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tarfile
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 ################################################################################
 # General helpers
