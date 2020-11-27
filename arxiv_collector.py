@@ -227,10 +227,11 @@ def collect(
             deps_file,
             "Expected something like '{}.pdf :\\'".format(base_name),
         ).group(1)
+        jobname, _ = os.path.splitext(output_name)
 
         info(
-            "Deps file {}: source {}, base name {}, output {}".format(
-                deps_file, filename, base_name, output_name
+            "Deps file {}: source {}, base name {}, output {}, jobname {}".format(
+                deps_file, filename, base_name, output_name, jobname
             )
         )
 
@@ -287,9 +288,9 @@ def collect(
         else:
             expect(bogus, ["[end of file]"], deps_file)
 
-    bbl_pth = os.path.join(os.path.dirname(output_name), "{}.bbl".format(base_name))
+    bbl_pth = jobname + '.bbl'
     if os.path.exists(bbl_pth):
-        add(bbl_pth)
+        add(bbl_pth, arcname = base_name + '.bbl')
     elif used_bib:
         msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
         error(msg.format(bbl_pth))
