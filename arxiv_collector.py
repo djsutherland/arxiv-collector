@@ -49,7 +49,7 @@ def expect(seen, exp, deps_file):
         seen = seen[:-1]
     if seen not in exp:
         msg = "deps file {} seems broken: expected the line\n{}\n  to be {}".format(
-            deps_file, seen, ("one of:\n" + "\n".join(exp)) if len(exp) > 1 else exp[0],
+            deps_file, seen, ("one of:\n" + "\n".join(exp)) if len(exp) > 1 else exp[0]
         )
         raise ValueError(msg)
 
@@ -213,28 +213,36 @@ def collect(
     with io.open(deps_file, "rt") as f:
         lines = iter(f)
 
-        base_name = expect_re(
+        filename = expect_re(
             next(lines),
             r"#===Dependents(?:, and related info,)? for (.*):$",
             deps_file,
             "Expected to start with '#===Dependents'",
         ).group(1)
+        base_name, _ = os.path.splitext(filename)
 
-        expect(
+        output_name = expect_re(
             next(lines),
-            [
-                "{}.pdf :\\".format(base_name),
-                "{}.pdf {} :\\".format(base_name, deps_file),
-            ],
+            r"(.*) :\\$",
             deps_file,
+            "Expected something like '{}.pdf :\\'".format(base_name),
+        ).group(1)
+
+        info(
+            "Deps file {}: source {}, base name {}, output {}".format(
+                deps_file, filename, base_name, output_name
+            )
         )
 
         pkg_re = re.compile("/" + "|".join(re.escape(p) for p in packages) + "/")
         used_bib = False
 
-        end_line = u"#===End dependents for {}:\n".format(base_name)
+        end_lines = [
+            u"#===End dependents for {}:\n".format(filename),
+            u"#===End dependents for {}:\n".format(base_name),
+        ]
         for line in lines:
-            if line == end_line:
+            if line in end_lines:
                 break
 
             dep = line.strip()
@@ -270,7 +278,7 @@ def collect(
                 add(dep)
         else:
             # hit end of file without the break...
-            expect(line, [end_line], deps_file)
+            expect(line, end_lines, deps_file)
 
         try:
             bogus = next(lines)
