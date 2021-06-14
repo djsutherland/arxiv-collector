@@ -13,6 +13,8 @@ import tarfile
 
 __version__ = "0.4.1"
 
+STRIP_COMMENTS = (re.compile(r"(^|[^\\])%.*"), r"\1%")
+
 ################################################################################
 # General helpers
 
@@ -65,8 +67,6 @@ def expect_re(seen, pattern, deps_file, error_msg=None):
         raise ValueError(msg)
     return match
 
-
-strip_comment = partial(re.compile(r"(^|[^\\])%.*").sub, r"\1%")
 
 ################################################################################
 # Utilities to check and download latexmk
@@ -186,7 +186,7 @@ def collect(
     out_tar,
     deps_file,
     packages=("biblatex",),
-    strip_comments=True,
+    tex_replace=(STRIP_COMMENTS,),
     verbosity=1,
     latexmk="latexmk",
     delete_deps_after=False,
@@ -255,26 +255,39 @@ def collect(
             if os.path.isabs(dep):
                 if pkg_re.search(dep):
                     add(dep, arcname=os.path.basename(dep))
-            elif dep.endswith(".tex") and strip_comments:
+
+            elif dep.endswith(".tex") and tex_replace:
                 with io.open(dep) as f, io.BytesIO() as g:
                     tarinfo = tarfile.TarInfo(name=dep)
                     for line in f:
-                        g.write(strip_comment(line).encode("utf-8"))
+                        for pat, rep in tex_replace:
+                            line = re.sub(pat, rep, line)
+                        g.write(line.encode("utf-8"))
                     tarinfo.size = g.tell()
                     g.seek(0)
                     out_tar.addfile(tarinfo=tarinfo, fileobj=g)
-                    info("Adding", dep, "with comments stripped")
+                    info(
+                        "Adding",
+                        dep,
+                        "with",
+                        len(tex_replace),
+                        "line-wise replacements",
+                    )
+
             elif dep.endswith(".eps"):
                 # arxiv doesn't like epstopdf in subdirectories
                 base = dep[:-4]
                 add(base + "-eps-converted-to.pdf", arcname=base + ".pdf")
+
             elif dep.endswith("-eps-converted-to.pdf"):
                 # old versions of latexmk output both the converted and the not
                 pass
+
             elif dep.endswith(".bib"):
                 used_bib = True
                 if include_bib:
                     add(dep)
+
             else:
                 add(dep)
         else:
@@ -288,9 +301,9 @@ def collect(
         else:
             expect(bogus, ["[end of file]"], deps_file)
 
-    bbl_pth = jobname + '.bbl'
+    bbl_pth = jobname + ".bbl"
     if os.path.exists(bbl_pth):
-        add(bbl_pth, arcname = base_name + '.bbl')
+        add(bbl_pth, arcname=base_name + ".bbl")
     elif used_bib:
         msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
         error(msg.format(bbl_pth))
@@ -398,6 +411,25 @@ def parse_args():
         help="Don't strip comments from any .tex files.",
     )
 
+    class AppendList(argparse.Action):
+        def __init__(self, option_strings, dest, **kwargs):
+            super().__init__(option_strings, dest, **kwargs)
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            items = getattr(namespace, self.dest, [])[:]
+            items.append(values)
+            setattr(namespace, self.dest, items)
+
+    contents.add_argument(
+        "--tex-replace",
+        nargs=2,
+        metavar=("PATTERN", "REPlACE"),
+        default=[],
+        action=AppendList,
+        help="Add a regex replacement for handling *lines* of tex files, "
+        "in the format expected by re.sub. Can pass multiple times.",
+    )
+
     output = parser.add_argument_group("output options")
     g = output.add_mutually_exclusive_group()
     opt = partial(g.add_argument, action="store_const", dest="verbosity")
@@ -430,6 +462,11 @@ def parse_args():
 
     if args.skip_biblatex:
         args.packages.remove("biblatex")
+
+    if args.strip_comments:
+        args.tex_replace.append(STRIP_COMMENTS)
+    if args.tex_replace:
+        args.tex_replace = [(re.compile(pat), sub) for pat, sub in args.tex_replace]
 
     if not args.latexmk_deps:  # if we need to worry about latexmk stuff...
         # check latexmk version works
@@ -492,7 +529,7 @@ def main():
             out_tar=t,
             deps_file=deps_file,
             packages=args.packages,
-            strip_comments=args.strip_comments,
+            tex_replace=args.tex_replace,
             verbosity=args.verbosity,
             delete_deps_after=not args.latexmk_deps,
             extract_bib_name=args.extract_bib,
