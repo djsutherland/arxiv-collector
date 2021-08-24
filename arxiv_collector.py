@@ -306,7 +306,6 @@ def collect(
     if len(bbl_pths) == 0 and used_bib:
         error("Used a .bib file, but didn't find any .bbl file")
     for bbl_pth in bbl_pths:
-        print(f"archiving {bbl_pth} with arcname {base_name + '.bbl'}")
         add(bbl_pth)
 
     if extract_bib_name:
