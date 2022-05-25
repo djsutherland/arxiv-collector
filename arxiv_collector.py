@@ -310,12 +310,12 @@ def collect(
         else:
             expect(bogus, ["[end of file]"], deps_file)
 
-    bbl_pth = jobname + ".bbl"
-    if os.path.exists(bbl_pth):
-        add(bbl_pth, arcname=base_name + ".bbl")
-    elif used_bib:
-        msg = "Used a .bib file, but didn't find '{}'; this likely won't work."
-        error(msg.format(bbl_pth))
+    from glob import glob
+    bbl_pths = glob(f"{jobname}*.bbl")
+    if len(bbl_pths) == 0 and used_bib:
+        error("Used a .bib file, but didn't find any .bbl file")
+    for bbl_pth in bbl_pths:
+        add(bbl_pth)
 
     if extract_bib_name:
         info("Running biber on {}.bcf...".format(base_name))
