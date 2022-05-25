@@ -192,6 +192,7 @@ def collect(
     delete_deps_after=False,
     extract_bib_name=False,
     include_bib=False,
+    exclude_files=[],
 ):
     error = partial(print, file=sys.stderr)
     info = print if verbosity >= 2 else _eat
@@ -202,6 +203,10 @@ def collect(
         dest = target(path)
         if arcname is None:
             arcname = path
+
+        if any(excl.match(arcname) for excl in exclude_files):
+            info("Excluding", arcname)
+            return
 
         if not os.path.exists(dest):
             raise OSError("'{}' doesn't exist!".format(path))
@@ -257,6 +262,10 @@ def collect(
                     add(dep, arcname=os.path.basename(dep))
 
             elif dep.endswith(".tex") and tex_replace:
+                if any(excl.match(dep) for excl in exclude_files):
+                    info("Excluding", dep)
+                    continue
+
                 with io.open(dep) as f, io.BytesIO() as g:
                     tarinfo = tarfile.TarInfo(name=dep)
                     for line in f:
@@ -430,6 +439,17 @@ def parse_args():
         "in the format expected by re.sub. Can pass multiple times.",
     )
 
+    contents.add_argument(
+        "--exclude-files",
+        metavar="REGEX",
+        action=AppendList,
+        default=[],
+        type=re.compile,
+        help="File paths matching REGEX won't actually be added to the tar; "
+        "uses re.match (i.e. should match from the start, relative to the base "
+        "directory), and applies to output filenames. Can pass multiple times.",
+    )
+
     output = parser.add_argument_group("output options")
     g = output.add_mutually_exclusive_group()
     opt = partial(g.add_argument, action="store_const", dest="verbosity")
@@ -534,6 +554,7 @@ def main():
             delete_deps_after=not args.latexmk_deps,
             extract_bib_name=args.extract_bib,
             include_bib=args.include_bib,
+            exclude_files=args.exclude_files,
         )
         n_members = len(t.getmembers())
     sz = sizeof_fmt(os.stat(args.dest).st_size)
