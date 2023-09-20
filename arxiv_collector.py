@@ -193,6 +193,7 @@ def collect(
     extract_bib_name=False,
     include_bib=False,
     exclude_files=[],
+    cut_after_end_document=True,
 ):
     error = partial(print, file=sys.stderr)
     info = print if verbosity >= 2 else _eat
@@ -272,6 +273,8 @@ def collect(
                         for pat, rep in tex_replace:
                             line = re.sub(pat, rep, line)
                         g.write(line.encode("utf-8"))
+                        if cut_after_end_document and line.startswith("\end{document}"):
+                            break
                     tarinfo.size = g.tell()
                     g.seek(0)
                     out_tar.addfile(tarinfo=tarinfo, fileobj=g)
@@ -420,6 +423,20 @@ def parse_args():
         help="Don't strip comments from any .tex files.",
     )
 
+    cut_after_end_document = contents.add_mutually_exclusive_group()
+    cut_after_end_document.add_argument(
+        "--cut-after-end-document",
+        action="store_true",
+        default=True,
+        help="Cut after the \\end{document} of each .tex file (by default).",
+    )
+    cut_after_end_document.add_argument(
+        "--no-cut-after-end-document",
+        action="store_false",
+        dest="cut_after_end_document",
+        help="Don't cut after the \\end{document} of each .tex file.",
+    )
+
     class AppendList(argparse.Action):
         def __init__(self, option_strings, dest, **kwargs):
             super().__init__(option_strings, dest, **kwargs)
@@ -555,6 +572,7 @@ def main():
             extract_bib_name=args.extract_bib,
             include_bib=args.include_bib,
             exclude_files=args.exclude_files,
+            cut_after_end_document=args.cut_after_end_document,
         )
         n_members = len(t.getmembers())
     sz = sizeof_fmt(os.stat(args.dest).st_size)
