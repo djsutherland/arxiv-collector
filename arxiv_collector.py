@@ -72,6 +72,15 @@ def expect_re(seen, pattern, deps_file, error_msg=None):
 # Utilities to check and download latexmk
 
 
+def get_latexmk_engine_opts(engine):
+    if engine == "xelatex":
+        return ["-xelatex"]
+    elif engine == "lualatex":
+        return ["-lualatex"]
+    else:  # default to pdflatex
+        return ["-pdf"]
+
+
 def get_latexmk(version="ctan", dest="latexmk", verbose=True):
     try:
         from urllib.request import urlopen
@@ -140,7 +149,14 @@ class LatexmkException(Exception):
         self.base_error = base_error
 
 
-def get_deps(base_name="main", latexmk="latexmk", deps_file=".deps", verbosity=1):
+def get_deps(
+    base_name="main",
+    latexmk="latexmk",
+    deps_file=".deps",
+    verbosity=1,
+    engine="pdflatex",
+    shell_escape=False,
+):
     # Use latexmk to:
     #  - make sure we have a good main.bbl file
     #  - figure out which files we actually use (to not include unused figures)
@@ -155,11 +171,19 @@ def get_deps(base_name="main", latexmk="latexmk", deps_file=".deps", verbosity=1
     args = [
         latexmk,
         "-silent",
-        "-pdf",
-        "-deps",
-        "-deps-out={}".format(deps_file),
-        base_name,
-    ]
+    ] + get_latexmk_engine_opts(engine)
+
+    if shell_escape:
+        args.append("--shell-escape")
+
+    args.extend(
+        [
+            "-deps",
+            "-deps-out={}".format(deps_file),
+            base_name,
+        ]
+    )
+
     debug("Running ", args)
     try:
         output = subprocess.check_output(args, stderr=subprocess.STDOUT)
@@ -244,8 +268,8 @@ def collect(
         used_bib = False
 
         end_lines = [
-            u"#===End dependents for {}:\n".format(filename),
-            u"#===End dependents for {}:\n".format(base_name),
+            "#===End dependents for {}:\n".format(filename),
+            "#===End dependents for {}:\n".format(base_name),
         ]
         for line in lines:
             if line in end_lines:
@@ -369,6 +393,19 @@ def parse_args():
             "Include a new .bib file which contains only the used bib entries. "
             "arXiv will ignore this, but you might want it for another reason."
         ),
+    )
+
+    parser.add_argument(
+        "--shell-escape",
+        action="store_true",
+        help="Enable shell-escape/write18 for LaTeX compilation",
+    )
+
+    parser.add_argument(
+        "--engine",
+        choices=["pdflatex", "xelatex", "lualatex"],
+        default="pdflatex",
+        help="LaTeX engine to use [default: %(default)s].",
     )
 
     pkgs = parser.add_argument_group("packages to include")
@@ -531,11 +568,17 @@ def main():
         deps_file = args.latexmk_deps
     else:
         if args.verbosity >= 1:
-            print("Building {}...".format(args.base_name))
-
+            print(
+                f"Building {args.base_name} with {args.engine}"
+                f"{' (shell-escape enabled)' if args.shell_escape else ''}..."
+            )
         try:
             deps_file = get_deps(
-                base_name=args.base_name, latexmk=args.latexmk, verbosity=args.verbosity
+                base_name=args.base_name,
+                latexmk=args.latexmk,
+                verbosity=args.verbosity,
+                engine=args.engine,
+                shell_escape=args.shell_escape,
             )
         except LatexmkException as e:
             print(str(e), file=sys.stderr)
