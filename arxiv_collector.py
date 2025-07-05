@@ -117,7 +117,9 @@ def get_latexmk(version="ctan", dest="latexmk", verbose=True):
             print("saved to `{}`.".format(dest), file=sys.stderr)
 
 
-version_re = re.compile(r"Latexmk, John Collins, \d+ \w+\.? \d+\. Version (.*)\s*$")
+version_re = re.compile(
+    r"Latexmk, John Collins, \d+ \w+\.? \d+\. Version (.*)\s*$", re.MULTILINE
+)
 
 
 def get_latexmk_version(latexmk="latexmk"):
